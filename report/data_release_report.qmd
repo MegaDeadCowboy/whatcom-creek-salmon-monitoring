@@ -1,0 +1,69 @@
+---
+title: "Data Release Report: Whatcom Creek Salmon Spawner Observations"
+subtitle: "Fall 2026, Bellingham, Washington"
+author: "Carver Rasmussen"
+date: today
+format:
+  html: {embed-resources: true, toc: true}
+  pdf: {toc: true}
+execute: {echo: false, warning: false}
+jupyter: python3
+---
+
+```{python}
+import json, pandas as pd, yaml
+from pathlib import Path
+REL = Path("../data/release")
+schema = yaml.safe_load(open("../docs/schema.yaml"))
+obs = pd.read_csv(REL / "observations.csv", parse_dates=["survey_date"])
+qa = pd.read_csv(REL / "qa_summary.csv")
+meta = json.loads((REL / "metadata.json").read_text())
+passed = obs[obs["qa_flag"].isna()]
+```
+
+## Abstract
+<!-- 3-4 sentences: what, where, when, how many records, where the data lives. -->
+This release contains `{python} len(obs)` point observations collected on
+`{python} obs["survey_date"].dt.date.nunique()` survey date(s) between
+`{python} obs["survey_date"].min().strftime("%Y-%m-%d")` and `{python} obs["survey_date"].max().strftime("%Y-%m-%d")`.
+
+## Purpose and background
+<!-- Why chum/coho spawner surveys on Whatcom Creek; what this pilot demonstrates. -->
+
+## Methods
+**Survey design.** <!-- reaches, landmarks, walk direction, visual count protocol -->
+
+**Data collection.** Survey123 form with coded domains, conditional required fields,
+range constraints, and a `{python} schema["gps_accuracy_warn_m"]` m GPS accuracy threshold.
+
+**Quality control.** Automated post-collection checks (`scripts/qa_pipeline.py`):
+
+```{python}
+qa[qa["n"] > 0][["check", "n", "description"]]
+```
+
+## Results
+
+```{python}
+tbl = (passed[passed["obs_type"].isin(["live_fish", "carcass"])]
+       .pivot_table(index="reach", columns="species", values="count",
+                    aggfunc="sum", fill_value=0))
+tbl if len(tbl) else "No live fish or carcasses recorded in QA-passed records (zero counts are valid)."
+```
+
+<!-- Insert map: ![](../docs/map_layout.png) -->
+
+## Data package contents
+
+```{python}
+pd.DataFrame({"file": meta["files"]})
+```
+
+Data dictionary: `data_dictionary.csv`. Coordinate system: `{python} meta["crs"]`.
+
+## Limitations
+<!-- single observer, visual counts only, early-season timing, no discharge data, etc. -->
+
+## Citation
+Rasmussen, C. (2026). *Whatcom Creek Salmon Spawner Observations, Fall 2026* (v`{python} meta["schema_version"]`).
+https://github.com/MegaDeadCowboy/whatcom-creek-salmon-monitoring

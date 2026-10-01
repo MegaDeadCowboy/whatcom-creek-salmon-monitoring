@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.ipynb_checkpoints/
+.pytest_cache/
+# Secrets
+.env
+*.pem
+# Quarto
+.quarto/
+report/*_files/
+report/*.html
+report/*.pdf
+!report/data_release_report.pdf
+# ArcGIS Pro (binary / machine-local)
+*.gdb/
+*.lock
+.backups/
+Index/
+ImportLog/
+GpMessages/
+*.atbx.bak
+# Large rasters: document the source in README instead of committing
+*.tif
+*.tiff
+*.laz
+*.las
+*.img
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+~$*.xlsx
