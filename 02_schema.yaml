@@ -1,0 +1,101 @@
+# Whatcom Creek salmon monitoring — CANONICAL DATA MODEL
+# Single source of truth. Lives in repo at /docs/schema.yaml.
+# Form, gdb domains, QA script, data dictionary, and metadata are all GENERATED
+# from this file. Change it here first, then regenerate. Never hand-edit domain
+# lists anywhere else.
+
+dataset: whatcom-creek-salmon-monitoring
+version: 0.1.0
+timezone: America/Los_Angeles        # Survey123 stores UTC; convert for local dates
+crs: EPSG:4326
+survey_window: {start: "2026-10-01", end: "2026-12-31"}
+gps_accuracy_warn_m: 15
+duplicate_tolerance: {coord_decimals: 5, time_minutes: 1}   # ~1 m, same minute
+
+domains:
+  reach:            # rename labels in Phase 0 once landmarks are set
+    R1: Reach 1
+    R2: Reach 2
+    R3: Reach 3
+    R4: Reach 4
+  obs_type:
+    live_fish: Live fish
+    carcass: Carcass
+    redd: Redd
+    habitat: Habitat feature
+    no_fish: No fish seen
+  species:
+    chum: Chum
+    coho: Coho
+    chinook: Chinook
+    pink: Pink
+    unk_salmonid: Unknown salmonid
+  water_clarity:
+    clear: Clear
+    slight_turbid: Slightly turbid
+    turbid: Turbid
+  flow:
+    low: Low
+    normal: Normal
+    high: High
+  weather:
+    clear: Clear
+    overcast: Overcast
+    light_rain: Light rain
+    heavy_rain: Heavy rain
+    fog: Fog
+
+# Rule keys:
+#   required: true              -> always required
+#   required_if: {field: [..]}  -> required AND only shown when condition holds;
+#                                  a value present outside the condition = NOT_APPLICABLE
+#   min / max                   -> numeric range (integer fields)
+#   max_length                  -> text length
+#   not_future / in_window      -> date checks
+#   per_visit: true             -> must be consistent within one date+observer
+#   system: true                -> hidden, not entered by observer
+fields:
+  - {name: survey_date,   type: datetime,   label: "Survey date and time", required: true, not_future: true, in_window: true,
+     desc: "Date/time of observation (stored UTC)"}
+  - {name: observer,      type: text,       label: "Observer", required: true, max_length: 50,
+     desc: "Name or username of the person recording"}
+  - {name: reach,         type: select_one, domain: reach, label: "Reach", required: true,
+     desc: "Survey reach code (see reaches.geojson)"}
+  - {name: location,      type: geopoint,   label: "Observation location", required: true,
+     desc: "Point location from device GPS"}
+  - {name: gps_accuracy_m, type: decimal,   label: "GPS horizontal accuracy (m)", system: true, calc: gps_accuracy,
+     desc: "Device-reported horizontal accuracy at capture"}
+  - {name: obs_type,      type: select_one, domain: obs_type, label: "Observation type", required: true,
+     desc: "What was observed at this point"}
+  - {name: species,       type: select_one, domain: species, label: "Species",
+     required_if: {obs_type: [live_fish, carcass, redd]},
+     desc: "Salmonid species; null for habitat and no_fish records"}
+  - {name: count,         type: integer,    label: "Count", min: 0, max: 500,
+     required_if: {obs_type: [live_fish, carcass]},
+     desc: "Number of live fish or carcasses at this point"}
+  - {name: redd_count,    type: integer,    label: "Redd count", min: 0, max: 100,
+     required_if: {obs_type: [redd]},
+     desc: "Number of redds at this point"}
+  - {name: water_clarity, type: select_one, domain: water_clarity, label: "Water clarity", required: true, per_visit: true,
+     desc: "Visual water clarity during the survey"}
+  - {name: flow,          type: select_one, domain: flow, label: "Flow", required: true, per_visit: true,
+     desc: "Qualitative flow condition during the survey"}
+  - {name: weather,       type: select_one, domain: weather, label: "Weather",
+     desc: "Weather during the survey (optional)"}
+  - {name: photo,         type: image,      label: "Photo",
+     desc: "Optional photo attachment"}
+  - {name: notes,         type: text,       label: "Notes", max_length: 250,
+     desc: "Free-text notes, 250 characters max"}
+  - {name: qa_flag,       type: text,       label: "QA flag", system: true, max_length: 255,
+     desc: "Pipe-delimited QA codes written by qa_pipeline.py; empty = passed"}
+
+qa_flags:
+  MISSING_REQ:        "Required value missing (always-required or condition met)"
+  NOT_APPLICABLE:     "Value present where the field doesn't apply (e.g. species on a habitat record)"
+  OUT_OF_RANGE:       "Numeric or text length outside allowed range"
+  BAD_DOMAIN:         "Value not in the coded domain"
+  DATE_FUTURE:        "survey_date is in the future"
+  DATE_WINDOW:        "survey_date outside survey_window"
+  GPS_ACCURACY:       "gps_accuracy_m above gps_accuracy_warn_m, or missing"
+  DUPLICATE:          "Same location, minute, and obs_type as another record"
+  VISIT_INCONSISTENT: "per_visit field differs within the same local date + observer"
