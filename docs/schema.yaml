@@ -14,10 +14,10 @@ duplicate_tolerance: {coord_decimals: 5, time_minutes: 1}   # ~1 m, same minute
 
 domains:
   reach:            # rename labels in Phase 0 once landmarks are set
-    R1: "R1 - Mouth to Martitime Heritage Park"
+    R1: "R1 - Mouth to Maritime Heritage Park"
     R2: "R2: Maritime Heritage Park to Woburn St"
     R3: "R3: Woburn St to WWU Fisheries Rental"
-    R4: "R4: WWU Rental to Lake Inlet"
+    R4: "R4: WWU Rental to Lake Outlet"
   obs_type:
     live_fish: Live fish
     carcass: Carcass
