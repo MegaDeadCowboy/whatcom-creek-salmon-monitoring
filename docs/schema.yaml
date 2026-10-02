@@ -9,6 +9,7 @@ version: 0.1.2
 timezone: America/Los_Angeles        # Survey123 stores UTC; convert for local dates
 crs: EPSG:4326
 survey_window: {start: "2026-10-01", end: "2026-12-31"}
+gps_accuracy_warn_m: 15
 gps_accuracy_block_m: 50       # form hard-stop; 15–50 m passes but QA flags GPS_ACCURACY
 duplicate_tolerance: {coord_decimals: 5, time_minutes: 1}   # ~1 m, same minute
 
