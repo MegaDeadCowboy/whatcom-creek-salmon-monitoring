@@ -61,7 +61,7 @@ def survey_row(f: dict, schema: dict) -> dict:
     r["constraint_message"] = "; ".join(msgs)
 
     if t == "geopoint":
-        r["body::accuracyThreshold"] = schema["gps_accuracy_warn_m"]
+        r["body::accuracyThreshold"] = schema.get("gps_accuracy_block_m", schema["gps_accuracy_warn_m"])
     if f["name"] == "observer":
         r["calculation"] = "${username}"   # VERIFY: editable default from signed-in user
     if f["name"] == "notes":
