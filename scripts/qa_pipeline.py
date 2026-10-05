@@ -22,7 +22,7 @@ def load_schema(path):
 def load_from_agol(item_id, layer=0):
     """Pull the hosted layer. Uses ArcGIS API for Python (pip install arcgis)."""
     from arcgis.gis import GIS
-    gis = GIS("home") if _in_pro() else GIS("https://www.arcgis.com", input("AGOL username: "))  # prompts for password
+    gis = GIS("pro") if _in_pro() else GIS("home")
     fl = gis.content.get(item_id).layers[layer]
     sdf = fl.query(where="1=1", out_sr=4326, as_df=True)
     sdf["lon"] = sdf["SHAPE"].apply(lambda g: g.x if g is not None else None)
