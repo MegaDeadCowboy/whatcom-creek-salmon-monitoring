@@ -24,6 +24,8 @@ def test_expected_codes():
     assert "OUT_OF_RANGE" in f[4]           # count 900
     assert "BAD_DOMAIN" in f[5]             # reach R5
     assert {"DATE_FUTURE", "DATE_WINDOW"} <= f[7]
+    assert "PARENT_MISMATCH" in f[8]        # R3 station on an R1 record
+    assert not any("PARENT_MISMATCH" in x for x in f[:8])  # R5 row is BAD_DOMAIN only
 
 
 def test_visit_inconsistency_flags_whole_visit():

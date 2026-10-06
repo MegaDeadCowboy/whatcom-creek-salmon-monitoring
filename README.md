@@ -69,11 +69,11 @@ Every field, coded domain, validation rule, and QA flag is defined once in `docs
 
 **Index stations.** Five fixed stations (`whatcom_stations`): R1-S1 Holly St bridge, R2-S1 Meador bridge, R2-S2 Woburn St bridge, R3-S1 Whatcom Falls Park, R4-S1 Electric Ave bridge. The long R2 reach gets two. A station on a boundary landmark belongs to the reach downstream of it.
 
-**Field protocol.** At each station: a 10-minute timed visual scan from the bank or bridge. One Survey123 record per observation (live fish, carcass, redd, or habitat feature). If nothing is seen, one "no fish seen" record. The station code starts the notes field (e.g. `STN R2-S2 · 10 min scan`). Water clarity and flow are recorded on every record and checked for consistency within a visit. Observers stay on banks, bridges, and trails, keep off and away from redds, and don't handle fish or carcasses.
+**Field protocol.** At each station: a 10-minute timed visual scan from the bank or bridge. One Survey123 record per observation (live fish, carcass, redd, or habitat feature). If nothing is seen, one "no fish seen" record. Each record carries a station code; the form only offers stations inside the selected reach, and QA flags any mismatch. Water clarity and flow are recorded on every record and checked for consistency within a visit. Observers stay on banks, bridges, and trails, keep off and away from redds, and don't handle fish or carcasses.
 
-**Collection.** Survey123 form generated from the schema and published from an ArcGIS Online Notebook (no Survey123 Connect). It has coded domains, conditional fields (species only for fish, carcass, and redd records; count vs. redd count by observation type), range constraints, a no-future-dates rule, and a two-tier GPS check: the form blocks fixes worse than 50 m, and QA flags anything over 15 m. Validation tested on device (`screenshots/form_*.png`).
+**Collection.** Survey123 form generated from the schema and published from an ArcGIS Online Notebook (no Survey123 Connect). It has coded domains, a cascading reach → station select, conditional fields (species only for fish, carcass, and redd records; count vs. redd count by observation type), range constraints, a no-future-dates rule, and a two-tier GPS check: the form blocks fixes worse than 50 m, and QA flags anything over 15 m. Validation tested on device (`screenshots/form_*.png`).
 
-**QA/QC.** Form-level validation at entry, plus a post-collection script that flags (never deletes) missing, out-of-range, not-applicable, off-domain, out-of-window, low-accuracy, duplicate, and within-visit-inconsistent records. Results are written to `qa_flag`. Status: script written and authentication tested; first run happens after survey 1.
+**QA/QC.** Form-level validation at entry, plus a post-collection script that flags (never deletes) missing, out-of-range, not-applicable, off-domain, out-of-window, low-accuracy, duplicate, within-visit-inconsistent, and station/reach-mismatch records. Results are written to `qa_flag`. Status: script written and authentication tested; first run happens after survey 1.
 
 **Publishing.** The dashboard reads a read-only hosted view, so the public can query the data but not edit it. The source layer stays private.
 
@@ -97,7 +97,6 @@ pytest tests/                                                                  #
 ## Limitations
 - Single observer, visual counts only. Index stations sample the creek; they aren't a full census.
 - Short season window: early-October visits fall before the chum peak, and repeat visits through October give only a short time series. Flow and clarity are qualitative.
-- Station codes live in the notes field rather than a dedicated field. A `station` field is the next schema change.
 - R1 is tidal, which lowers visibility at some tide stages.
 - _TBD: anything learned in the field._
 

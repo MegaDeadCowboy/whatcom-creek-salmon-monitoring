@@ -80,6 +80,14 @@ def run_qa(df, schema, now=None):
         if "max_length" in f:
             flag(col.astype(str).str.len().gt(f["max_length"]) & ~blank, "OUT_OF_RANGE")
 
+    for f in schema["fields"]:
+        if f.get("filter_by") and f["name"] in df and f["filter_by"] in df:
+            parent = schema["domain_filters"][f["domain"]]["map"]
+            par_dom = schema["domains"][next(x["domain"] for x in schema["fields"]
+                                             if x["name"] == f["filter_by"])]
+            valid = df[f["name"]].isin(parent) & df[f["filter_by"]].isin(par_dom)
+            flag(valid & (df[f["name"]].map(parent) != df[f["filter_by"]]), "PARENT_MISMATCH")
+
     start = pd.Timestamp(schema["survey_window"]["start"]).date()
     end = pd.Timestamp(schema["survey_window"]["end"]).date()
     flag(ts > now, "DATE_FUTURE")
@@ -140,12 +148,13 @@ def data_dictionary(schema):
             rule.append(f"required if {k} in {v}")
         if "min" in f: rule.append(f"{f['min']}-{f['max']}")
         if "max_length" in f: rule.append(f"max {f['max_length']} chars")
+        if f.get("filter_by"): rule.append(f"must belong to selected {f['filter_by']}")
         dom = f.get("domain")
         rows.append({"field": f["name"], "type": f["type"], "label": f["label"],
                      "description": f["desc"], "rules": "; ".join(rule),
                      "domain": ("; ".join(f"{c}={l}" for c, l in schema["domains"][dom].items())
                                 if dom else "")})
-    rows.insert(4, {"field": "lon / lat", "type": "decimal", "label": "Longitude / latitude",
+    rows.insert(5, {"field": "lon / lat", "type": "decimal", "label": "Longitude / latitude",
                     "description": f"Point coordinates, {schema['crs']}", "rules": "", "domain": ""})
     return pd.DataFrame(rows)
 

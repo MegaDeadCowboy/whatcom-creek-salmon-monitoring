@@ -10,7 +10,7 @@ from openpyxl.styles import Font
 
 SURVEY_COLS = ["type", "name", "label", "hint", "required", "required_message",
                "constraint", "constraint_message", "relevant", "default",
-               "calculation", "appearance", "bind::esri:fieldType",
+               "calculation", "choice_filter", "appearance", "bind::esri:fieldType",
                "bind::esri:fieldLength", "body::accuracyThreshold"]
 
 TYPE_MAP = {"datetime": "dateTime", "text": "text", "geopoint": "geopoint",
@@ -60,6 +60,8 @@ def survey_row(f: dict, schema: dict) -> dict:
     r["constraint"] = " and ".join(f"({c})" for c in cons) if len(cons) > 1 else "".join(cons)
     r["constraint_message"] = "; ".join(msgs)
 
+    if f.get("filter_by"):
+        r["choice_filter"] = f"{f['filter_by']}=${{{f['filter_by']}}}"   # cascading select
     if t == "geopoint":
         r["body::accuracyThreshold"] = schema.get("gps_accuracy_block_m", schema["gps_accuracy_warn_m"])
     if f["name"] == "observer":
@@ -82,15 +84,19 @@ def build(schema_path: str, out_path: str, version: str) -> None:
         ws.append([r[c] for c in SURVEY_COLS])
 
     ch = wb.create_sheet("choices")
-    ch.append(["list_name", "name", "label"])
+    filters = schema.get("domain_filters", {})
+    fcols = sorted({v["by"] for v in filters.values()})
+    ch.append(["list_name", "name", "label"] + fcols)
     for dname, codes in schema["domains"].items():
+        fmap = filters.get(dname, {})
         for code, label in codes.items():
-            ch.append([dname, code, label])
+            ch.append([dname, code, label] + [fmap["map"][code] if fmap.get("by") == c else ""
+                                              for c in fcols])
 
     st = wb.create_sheet("settings")
     st.append(["form_title", "form_id", "version", "instance_name"])
     st.append(["Whatcom Creek Salmon Survey", schema["dataset"].replace("-", "_"),
-               version, "concat(${reach}, ' - ', ${obs_type})"])
+               version, "concat(${station}, ' - ', ${obs_type})"])
 
     for sheet in wb.worksheets:
         for cell in sheet[1]:
