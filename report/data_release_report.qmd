@@ -11,14 +11,20 @@ jupyter: python3
 ---
 
 ```{python}
-import json, pandas as pd, yaml
+import json, os, pandas as pd, yaml
 from pathlib import Path
-REL = Path("../data/release")
+REL = Path(os.environ.get("DRR_RELEASE", "../data/release"))   # override for dry runs
 schema = yaml.safe_load(open("../docs/schema.yaml"))
 obs = pd.read_csv(REL / "observations.csv", parse_dates=["survey_date"])
 qa = pd.read_csv(REL / "qa_summary.csv")
 meta = json.loads((REL / "metadata.json").read_text())
-passed = obs[obs["qa_flag"].isna()]
+passed = obs[obs["qa_flag"].isna()].copy()
+passed["local_date"] = (pd.to_datetime(passed["survey_date"], utc=True)
+                        .dt.tz_convert(schema["timezone"]).dt.date)
+REACHES = list(schema["domains"]["reach"])
+from IPython.display import Markdown
+def md(df, **kw):
+    return Markdown(df.to_markdown(index=False, **kw))
 ```
 
 ## Abstract
@@ -32,23 +38,65 @@ This release contains `{python} len(obs)` point observations collected on
 
 ## Methods
 **Survey design.** <!-- reaches, landmarks, walk direction, visual count protocol -->
+Index stations (each visit: 10-minute timed visual scan from bank or bridge):
+
+```{python}
+md(pd.DataFrame([{"station": k, "reach": schema["domain_filters"]["station"]["map"][k],
+                  "location": v.split(": ", 1)[-1]}
+                 for k, v in schema["domains"]["station"].items()]))
+```
 
 **Data collection.** Survey123 form with coded domains, conditional required fields,
-range constraints, and a `{python} schema["gps_accuracy_warn_m"]` m GPS accuracy threshold.
+range constraints, a cascading reach → station select, and a two-tier GPS check: the form
+blocks fixes worse than `{python} schema["gps_accuracy_block_m"]` m and QA flags anything over
+`{python} schema["gps_accuracy_warn_m"]` m.
 
 **Quality control.** Automated post-collection checks (`scripts/qa_pipeline.py`):
 
 ```{python}
-qa[qa["n"] > 0][["check", "n", "description"]]
+md(qa[qa["n"] > 0][["check", "n", "description"]])
 ```
+
+Flagged records stay in the package with their codes in `qa_flag`; the results below use
+QA-passed records only.
 
 ## Results
 
+**Effort.** Station visits per reach. A visit with only "no fish seen" records is a measured zero.
+
 ```{python}
-tbl = (passed[passed["obs_type"].isin(["live_fish", "carcass"])]
-       .pivot_table(index="reach", columns="species", values="count",
-                    aggfunc="sum", fill_value=0))
-tbl if len(tbl) else "No live fish or carcasses recorded in QA-passed records (zero counts are valid)."
+v = passed.groupby(["reach", "station", "local_date"])["obs_type"].agg(lambda t: (t == "no_fish").all())
+eff = (v.groupby("reach").agg(visits="size", zero_visits="sum")
+       .reindex(REACHES, fill_value=0).reset_index())
+md(eff)
+```
+
+**Counts by reach and species** (sum over QA-passed records; redds use `redd_count`).
+
+```{python}
+fish = passed[passed["obs_type"].isin(["live_fish", "carcass", "redd"])].copy()
+fish["n"] = fish["count"].where(fish["obs_type"] != "redd", fish["redd_count"])
+if len(fish):
+    t = (fish.pivot_table(index=["reach", "species"], columns="obs_type", values="n",
+                          aggfunc="sum", fill_value=0)
+         .reindex(columns=["live_fish", "carcass", "redd"], fill_value=0).astype(int))
+    t = t.reset_index().merge(pd.DataFrame({"reach": REACHES}), how="right").fillna(
+        {"species": "none observed", "live_fish": 0, "carcass": 0, "redd": 0})
+    out = md(t.astype({"live_fish": int, "carcass": int, "redd": int}))
+else:
+    out = "No fish, carcasses, or redds in QA-passed records (zero counts are valid data)."
+out
+```
+
+**Live fish by survey date and reach.**
+
+```{python}
+live = passed[passed["obs_type"] == "live_fish"]
+ts = (live.pivot_table(index="local_date", columns="reach", values="count",
+                       aggfunc="sum", fill_value=0)
+      .reindex(sorted(passed["local_date"].unique()), fill_value=0)
+      .reindex(columns=REACHES, fill_value=0).astype(int))
+md(ts.rename_axis("date").reset_index())
 ```
 
 <!-- Insert map: ![](../docs/map_layout.png) -->
@@ -56,7 +104,7 @@ tbl if len(tbl) else "No live fish or carcasses recorded in QA-passed records (z
 ## Data package contents
 
 ```{python}
-pd.DataFrame({"file": meta["files"]})
+md(pd.DataFrame({"file": meta["files"]}))
 ```
 
 Data dictionary: `data_dictionary.csv`. Coordinate system: `{python} meta["crs"]`.

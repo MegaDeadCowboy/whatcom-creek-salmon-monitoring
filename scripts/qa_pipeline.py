@@ -179,7 +179,7 @@ def export_package(df, schema, out):
                                  float(df["lon"].max()), float(df["lat"].max())],
         "crs": schema["crs"], "record_count": len(df),
         "qa": summary.set_index("check")["n"].to_dict(),
-        "files": sorted(p.name for p in out.iterdir()) + ["metadata.json"],
+        "files": sorted({p.name for p in out.iterdir()} | {"metadata.json"}),
         "license": "CC-BY-4.0",  # decide + match repo LICENSE
         "contact": "FILL_IN",
     }
@@ -194,7 +194,9 @@ if __name__ == "__main__":
     src = p.add_mutually_exclusive_group(required=True)
     src.add_argument("--item"); src.add_argument("--csv")
     p.add_argument("--out", default="data/release")
+    p.add_argument("--now", help="ISO time to treat as 'now' (dry runs on future-dated test data)")
     a = p.parse_args()
     schema = load_schema(a.schema)
     raw = load_from_agol(a.item) if a.item else load_csv(a.csv)
-    export_package(run_qa(raw, schema), schema, a.out)
+    now = pd.Timestamp(a.now, tz="UTC") if a.now else None
+    export_package(run_qa(raw, schema, now=now), schema, a.out)
