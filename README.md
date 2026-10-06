@@ -1,8 +1,8 @@
 # Whatcom Creek Salmon Monitoring Pipeline
 
-> **Status: in progress.** Field survey 1: Oct 5, 2026. Sections marked _TBD_ get filled in as each component ships.
+> **Status: in progress.** Done: schema, Survey123 form, hosted layer, public view, dashboard, reaches and stations, survey design. Next: field surveys (first visit Oct 7, then several more dates through October), QA run, data package, data release report, Pro analysis. The dashboard updates live as surveys come in.
 
-An end-to-end field-to-dashboard ecological monitoring workflow built in ArcGIS: a fall salmon spawner survey on Whatcom Creek (Bellingham, WA), taken from Survey123 field collection through QA/QC, geodatabase, ArcGIS Pro analysis, a public dashboard, and a documented open data release.
+An end-to-end field-to-dashboard ecological monitoring workflow in ArcGIS for a fall salmon spawner survey on Whatcom Creek (Bellingham, WA). It runs from Survey123 field collection through QA/QC, a geodatabase, ArcGIS Pro analysis, and a public dashboard to a documented open data release. Dashed boxes in the diagram are still in progress.
 
 ```mermaid
 flowchart LR
@@ -16,6 +16,8 @@ flowchart LR
   H --> Q
   Q --> D[Data package<br/>CSV · GeoJSON · metadata]
   D --> R[Data release report]
+  classDef pending stroke-dasharray: 5 5
+  class G,P,D,R pending
 ```
 
 ## Links
@@ -24,9 +26,10 @@ flowchart LR
 | ArcGIS Dashboard | https://crasmussen.maps.arcgis.com/apps/dashboards/081b7ffec5a541a887000364ada89df3 |
 | Observations (public read-only REST) | https://services8.arcgis.com/sCQffpewzLxvlPPV/arcgis/rest/services/whatcom_salmon_obs_public/FeatureServer |
 | Index stations (REST) | https://services8.arcgis.com/sCQffpewzLxvlPPV/arcgis/rest/services/whatcom_stations/FeatureServer |
+| Reaches (REST) | https://services8.arcgis.com/sCQffpewzLxvlPPV/arcgis/rest/services/whatcom_reaches/FeatureServer |
 | Survey123 form | Screenshots in `screenshots/form_*.png` (form not public; it writes to the live dataset) |
-| Map layout (PDF) | _TBD_ |
-| Data release report | _TBD_ |
+| Map layout (PDF) | _Pending: after field surveys_ |
+| Data release report | _Pending: generated after the first QA run_ |
 
 ## Background
 Whatcom Creek runs about 4 miles from the Lake Whatcom outlet, through Whatcom Falls Park and downtown Bellingham, to Bellingham Bay. It supports a long-running hatchery return of fall chum and, more recently, a supplemented September chinook run, plus coho. Two natural features shape where fish can go:
@@ -70,20 +73,22 @@ Every field, coded domain, validation rule, and QA flag is defined once in `docs
 
 **Collection.** Survey123 form generated from the schema and published from an ArcGIS Online Notebook (no Survey123 Connect). It has coded domains, conditional fields (species only for fish, carcass, and redd records; count vs. redd count by observation type), range constraints, a no-future-dates rule, and a two-tier GPS check: the form blocks fixes worse than 50 m, and QA flags anything over 15 m. Validation tested on device (`screenshots/form_*.png`).
 
-**QA/QC.** Form-level validation at entry, plus a post-collection script that flags (never deletes) missing, out-of-range, not-applicable, off-domain, out-of-window, low-accuracy, duplicate, and within-visit-inconsistent records. Results are written to `qa_flag`. _TBD: QA summary from survey 1._
+**QA/QC.** Form-level validation at entry, plus a post-collection script that flags (never deletes) missing, out-of-range, not-applicable, off-domain, out-of-window, low-accuracy, duplicate, and within-visit-inconsistent records. Results are written to `qa_flag`. Status: script written and authentication tested; first run happens after survey 1.
 
 **Publishing.** The dashboard reads a read-only hosted view, so the public can query the data but not edit it. The source layer stays private.
 
-**Analysis.** _TBD: LiDAR slope → mean gradient per reach, spatial join summaries, WDFW fish passage and SalmonScape overlays._
+**Analysis (planned).** LiDAR slope → mean gradient per reach (Zonal Statistics), spatial join summaries by reach and species, and WDFW fish passage and SalmonScape overlays.
 
 ## Results
-_TBD: survey dates, counts by reach and species, QA summary, map._
+_Pending. Field visits start Oct 7, with repeat visits through October to build a short time series. This section will hold survey dates, counts by reach and species, the QA summary, and the map._
 
 ## Reproduce
 ```bash
 pip install -r requirements.txt
 python scripts/build_xlsform.py docs/schema.yaml form/whatcom_salmon.xlsx      # regenerate form
-python scripts/qa_pipeline.py --schema docs/schema.yaml --item <ITEM_ID> --out data/release
+# QA: run inside an ArcGIS Online Notebook (authenticates as the signed-in user),
+# or locally against a CSV exported from the hosted layer:
+python scripts/qa_pipeline.py --schema docs/schema.yaml --csv data/raw/<export>.csv --out data/release
 cd report && quarto render data_release_report.qmd
 pytest tests/                                                                  # QA check tests
 ```
@@ -91,7 +96,7 @@ pytest tests/                                                                  #
 
 ## Limitations
 - Single observer, visual counts only. Index stations sample the creek; they aren't a full census.
-- Short season window so far (survey 1 falls before the chum peak). Flow and clarity are qualitative.
+- Short season window: early-October visits fall before the chum peak, and repeat visits through October give only a short time series. Flow and clarity are qualitative.
 - Station codes live in the notes field rather than a dedicated field. A `station` field is the next schema change.
 - R1 is tidal, which lowers visibility at some tide stages.
 - _TBD: anything learned in the field._
