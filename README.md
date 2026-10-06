@@ -27,7 +27,7 @@ flowchart LR
 | Observations (public read-only REST) | https://services8.arcgis.com/sCQffpewzLxvlPPV/arcgis/rest/services/whatcom_salmon_obs_public/FeatureServer |
 | Index stations (REST) | https://services8.arcgis.com/sCQffpewzLxvlPPV/arcgis/rest/services/whatcom_stations/FeatureServer |
 | Reaches (REST) | https://services8.arcgis.com/sCQffpewzLxvlPPV/arcgis/rest/services/whatcom_reaches/FeatureServer |
-| Survey123 form | Screenshots in `screenshots/form_*.png` (form not public; it writes to the live dataset) |
+| Survey123 form | Screenshots in `screenshots/form_*.jpg` (form not public; it writes to the live dataset) |
 | Map layout (PDF) | _Pending: after field surveys_ |
 | Data release report | _Pending: generated after the first QA run_ |
 
@@ -71,7 +71,7 @@ Every field, coded domain, validation rule, and QA flag is defined once in `docs
 
 **Field protocol.** At each station: a 10-minute timed visual scan from the bank or bridge. One Survey123 record per observation (live fish, carcass, redd, or habitat feature). If nothing is seen, one "no fish seen" record. Each record carries a station code; the form only offers stations inside the selected reach, and QA flags any mismatch. Water clarity and flow are recorded on every record and checked for consistency within a visit. Observers stay on banks, bridges, and trails, keep off and away from redds, and don't handle fish or carcasses.
 
-**Collection.** Survey123 form generated from the schema and published from an ArcGIS Online Notebook (no Survey123 Connect). It has coded domains, a cascading reach → station select, conditional fields (species only for fish, carcass, and redd records; count vs. redd count by observation type), range constraints, a no-future-dates rule, and a two-tier GPS check: the form blocks fixes worse than 50 m, and QA flags anything over 15 m. Validation tested on device (`screenshots/form_*.png`).
+**Collection.** Survey123 form generated from the schema and published from an ArcGIS Online Notebook (no Survey123 Connect). It has coded domains, a cascading reach → station select, conditional fields (species only for fish, carcass, and redd records; count vs. redd count by observation type), range constraints, a no-future-dates rule, and a two-tier GPS check: the form blocks fixes worse than 50 m, and QA flags anything over 15 m. Validation tested on device (`screenshots/form_*.jpg`; station filter: `screenshots/form_station_filter.jpg`).
 
 **QA/QC.** Form-level validation at entry, plus a post-collection script that flags (never deletes) missing, out-of-range, not-applicable, off-domain, out-of-window, low-accuracy, duplicate, within-visit-inconsistent, and station/reach-mismatch records. Results are written to `qa_flag`. Status: script written and authentication tested; first run happens after survey 1.
 
